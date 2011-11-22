@@ -1,0 +1,6 @@
+./u3/d2bajaj/cs350-os161/os161-1.11/kern/conf/config ASST3
+cd /u3/d2bajaj/cs350-os161/os161-1.11/kern/compile/ASST3
+make depend
+make
+make install
+
