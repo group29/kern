@@ -82,6 +82,9 @@ boot(void)
 	thread_bootstrap();
 	vfs_bootstrap();
 	dev_bootstrap();
+#if OPT_A3
+	vmstats_init();
+#endif
 	vm_bootstrap();
 	kprintf_bootstrap();
 	
@@ -107,7 +110,6 @@ shutdown(void)
 	kprintf("Shutting down.\n");
 	
 #if OPT_A3
-	vmstats_init();
 	vmstats_print();
 #endif
 

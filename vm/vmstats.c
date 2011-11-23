@@ -19,7 +19,6 @@
 #include <synch.h>
 #include <machine/spl.h>
 #include "vmstats.h"
-#include <addrspace.h>
 
 /* Counters for tracking statistics */
 static unsigned int stats_counts[VMSTAT_COUNT];
@@ -104,27 +103,7 @@ _vmstats_init()
   }
 
   for (i=0; i<VMSTAT_COUNT; i++) {
-   
-	if (i == 0) {
-	 stats_counts[i] = tlbfault;
-	}
-	
-	else if (i == 1) {
-	  stats_counts[i] = tlbfree;
-	}
-	
-	else if (i == 2) {
-	  stats_counts[i] = tlbreplace;
-	}
-	
-	else if (i == 3) {
-	  stats_counts[i] = tlbinvalid; 
-	}
-	
-	else {
-	   stats_counts[i] = 0;
-	}
-
+    stats_counts[i] = 0;
   }
 
 }

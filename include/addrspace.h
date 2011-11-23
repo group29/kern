@@ -13,13 +13,6 @@ struct vnode;
  *
  * You write this.
  */
-#if OPT_A3
-extern volatile int location; 
-extern volatile int tlbfree;
-extern volatile int tlbreplace;
-extern volatile int tlbinvalid; 
-extern volatile int tlbfault;
-#endif 
 
 
 struct addrspace {

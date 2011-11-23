@@ -6,6 +6,7 @@
 #include <thread.h>
 #include <curthread.h>
 #include <machine/tlb.h>
+#include <vmstats.h>
 #include "opt-A3.h"
 /*
  * Note! If OPT_DUMBVM is set, as is the case until you start the VM
@@ -16,13 +17,7 @@
 //dumbvm impl
 #define DUMBVM_STACKPAGES    12
 
-#if OPT_A3
-volatile int location = 0; 
-volatile int tlbfree = 0;
-volatile int tlbreplace = 0;
-volatile int tlbinvalid = 0; 
-volatile int tlbfault = 0;
-#endif
+
 
 //end dumbvm impl
 
@@ -133,12 +128,15 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	vtop2 = vbase2 + as->as_npages2 * PAGE_SIZE;
 	stackbase = USERSTACK - DUMBVM_STACKPAGES * PAGE_SIZE;
 	stacktop = USERSTACK;
-
+	int test = 0;
+	
 	if (faultaddress >= vbase1 && faultaddress < vtop1) {
 		paddr = (faultaddress - vbase1) + as->as_pbase1;
+		test=1;
 	}
 	else if (faultaddress >= vbase2 && faultaddress < vtop2) {
 		paddr = (faultaddress - vbase2) + as->as_pbase2;
+		
 	}
 	else if (faultaddress >= stackbase && faultaddress < stacktop) {
 		paddr = (faultaddress - stackbase) + as->as_stackpbase;
@@ -150,21 +148,26 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	/* make sure it's page-aligned */
 	assert((paddr & PAGE_FRAME)==paddr);
-
+	
 	for (i=0; i<NUM_TLB; i++) {
 		TLB_Read(&ehi, &elo, i);
 		if (elo & TLBLO_VALID) {
 			continue;
 		}
 		ehi = faultaddress;
-		elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
+		kprintf("Val test: %d\n", test);
+		if (test==1) {
+		elo = paddr | TLBLO_VALID; }
+		else {
+		elo = paddr | TLBLO_DIRTY | TLBLO_VALID; 
+		}
 		DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
 #if OPT_A3
 		flag = 1;
 #endif
 		TLB_Write(ehi, elo, i);
-		tlbfree = tlbfree + 1; // increase tlbfree count
-		tlbfault = tlbfault + 1; // increase total count
+		vmstats_inc(1); // increase tlbfree count
+		vmstats_inc(0);
 		splx(spl);
 		return 0;
 	}
@@ -172,15 +175,16 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 #if OPT_A3
 	if (flag == 0) {
 		ehi = faultaddress;
-		elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
+		if (test==1) {
+		elo = paddr | TLBLO_VALID; }
+		else {
+		elo = paddr | TLBLO_DIRTY | TLBLO_VALID; 
+		}
 		DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);	
-		if (location == NUM_TLB) {
-			location = 0;
-		}	
-		TLB_Write(ehi, elo, location);
-		location = location + 1;   // increase the location count so next least recent address will be replaced
-		tlbreplace = tlbreplace + 1; // increase replace count
-		tlbfault = tlbfault + 1;
+			
+		TLB_Write(ehi, elo, tlb_get_rr_victim());
+		vmstats_inc(2); // increase replace count
+		vmstats_inc(0);
 		splx(spl);
 		return 0;
 	} 		
@@ -207,6 +211,17 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 might eed to remove
 end now 
 */
+
+int
+tlb_get_rr_victim()
+{
+int victim;
+static unsigned int next_victim = 0;
+victim = next_victim;
+next_victim = (next_victim + 1) % NUM_TLB;
+return victim;
+}
+
 
 struct addrspace *
 as_create(void)
@@ -287,7 +302,7 @@ as_activate(struct addrspace *as)
 	for (i=0; i<NUM_TLB; i++) {
 		TLB_Write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
 	}
-	tlbinvalid = tlbinvalid + 1;
+	vmstats_inc(3);
 	
 	}
 #else
@@ -343,21 +358,19 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
 
 	npages = sz / PAGE_SIZE;
 
+	
 	/* We don't use these - all pages are read-write */
 	(void)readable;
 	(void)writeable;
 	(void)executable;
 
 	if (as->as_vbase1 == 0) {
-		kprintf("val1: w: %d,  e: %d \n", writeable, executable);
 		as->as_vbase1 = vaddr;
 		as->as_npages1 = npages;
 		return 0;
 	}
 
 	if (as->as_vbase2 == 0) {
-			kprintf("val2: w: %d,  e: %d \n", writeable, executable);
-
 		as->as_vbase2 = vaddr;
 		as->as_npages2 = npages;
 		return 0;

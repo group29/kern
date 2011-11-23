@@ -130,7 +130,8 @@ addrspace.o: ../../vm/addrspace.c ../../include/types.h machine/types.h \
   ../../include/lib.h machine/setjmp.h ../../include/addrspace.h \
   ../../include/vm.h machine/vm.h opt-dumbvm.h opt-A3.h \
   ../../include/thread.h machine/pcb.h opt-A1.h opt-A2.h \
-  ../../include/curthread.h machine/tlb.h opt-A3.h
+  ../../include/curthread.h machine/tlb.h ../../include/vmstats.h \
+  opt-A3.h
 cache_mips1.o: ../../arch/mips/mips/cache_mips1.S machine/asmdefs.h
 exception.o: ../../arch/mips/mips/exception.S machine/asmdefs.h \
   machine/specialreg.h
@@ -355,8 +356,7 @@ vmstats.o: ../../vm/vmstats.c opt-A3.h ../../include/types.h \
   machine/types.h ../../include/kern/types.h machine/ktypes.h \
   ../../include/lib.h machine/setjmp.h ../../include/synch.h opt-A1.h \
   ../../include/thread.h machine/pcb.h opt-A2.h machine/spl.h \
-  ../../include/vmstats.h opt-A3.h ../../include/addrspace.h \
-  ../../include/vm.h machine/vm.h opt-dumbvm.h
+  ../../include/vmstats.h opt-A3.h
 arraytest.o: ../../test/arraytest.c ../../include/types.h machine/types.h \
   ../../include/kern/types.h machine/ktypes.h ../../include/lib.h \
   machine/setjmp.h ../../include/array.h ../../include/test.h
